@@ -1,161 +1,225 @@
-# Transverse-Field Ising Model Phase Scan (DMRG with Quimb)
+# Overview
 
-This project studies the **1D Transverse-Field Ising Model (TFIM)** using the **Density Matrix Renormalization Group (DMRG)** algorithm implemented with the `quimb` tensor network library.
+This project studies the **one-dimensional Transverse-Field Ising Model (TFIM)** using several computational techniques. The goal is to understand how different numerical and quantum algorithms capture the **quantum phase transition** that occurs in this model.
 
-The goal is to numerically observe the **quantum phase transition** by scanning the transverse field strength and measuring:
+The TFIM is a simple but important model in quantum many-body physics. By changing the strength of the transverse magnetic field, the system moves from a **ferromagnetic phase**, where spins tend to align with each other, to a **paramagnetic phase**, where the external field dominates and destroys the magnetic order.
 
-* **Ground state magnetization** (order parameter)
-* **Entanglement entropy** (quantum correlations)
+In this project, we analyze this transition using multiple approaches, including:
 
-By varying the transverse field, the simulation captures how the system transitions between an **ordered ferromagnetic phase** and a **quantum paramagnetic phase**.
+- **Exact Diagonalization (ED)** – used for small systems to obtain exact reference results  
+- **Density Matrix Renormalization Group (DMRG)** – a tensor network method used to study larger spin chains  
+- **Variational Quantum Eigensolver (VQE)** – a quantum algorithm that approximates the ground state using parameterized quantum circuits  
+- **Analytical results** of the TFIM where available  
+
+For each method, we compute and compare important physical quantities such as:
+
+- **Ground-state energy**
+- **Magnetic order parameter**
+- **Entanglement entropy**
+- **Spin correlation functions**
+
+By comparing results from different techniques, the project demonstrates how classical numerical methods and quantum algorithms can be used to study **quantum phase transitions in many-body systems**.
+
+----------------------------
+# Transverse Field Ising Model (TFIM)
+
+The **one–dimensional transverse-field Ising model (TFIM)** is one of the most important models in **condensed matter physics** and **quantum many-body theory**. It is widely used to study phenomena such as **quantum phase transitions**, **entanglement**, and **quantum criticality**.
+
+Despite its simple mathematical form, the TFIM captures a deep physical idea: **a competition between interactions that try to order a system and quantum fluctuations that try to disorder it**. Understanding this competition is central to many areas of modern physics.
 
 ---
 
-## Model
+## Model Hamiltonian
 
-The Hamiltonian of the **1D transverse-field Ising model** is
+The Hamiltonian of the one–dimensional TFIM is
 
 $$
+\large
 H = -J \sum_{i} Z_i Z_{i+1} - h \sum_{i} X_i
 $$
 
-where
+This Hamiltonian describes a **chain of spin-1/2 particles** arranged on a one-dimensional lattice.
 
-* $J$ is the nearest-neighbour coupling strength
-* $h$ is the transverse magnetic field
-* $Z_i$ and $X_i$ are **Pauli operators** acting on site $i$
+Each site \( i \) corresponds to a quantum spin that can point either **up** or **down** along the \( z \)-axis. The operators $$\( Z_i \)$$ and $$\( X_i \)$$ are **Pauli matrices** acting on the spin at site \( i \).
 
-The first term describes the **spin-spin interaction**, which favors aligned spins along the $z$ direction.
+---
 
-The second term represents the **transverse magnetic field**, which tends to flip spins and introduces **quantum fluctuations**.
+## Physical Meaning of the Parameters
 
-At **zero temperature**, this model exhibits a **quantum phase transition** at
+| Symbol | Meaning |
+|------|------|
+| $$\(J\)$$ | Strength of the nearest-neighbour spin interaction |
+| $$\(h\)$$ | Strength of the transverse magnetic field |
+| $$\(Z_i\)$$ | Pauli-Z operator acting on spin \(i\) |
+| $$\(X_i\)$$ | Pauli-X operator acting on spin \(i\) |
+
+The Hamiltonian consists of **two competing physical terms**, each representing a different physical effect.
+
+---
+
+## Spin–Spin Interaction Term
+
+The first term in the Hamiltonian is
+
+$$
+J \sum_i Z_i Z_{i+1}
+$$
+
+This represents the **interaction between neighbouring spins**.
+
+If \(J>0\), the interaction is **ferromagnetic**, meaning the system prefers neighbouring spins to align in the same direction along the \(z\)-axis.
+
+The lowest-energy configurations of the system correspond to states where **all spins are aligned in the same direction**. These two degenerate ground states are
+
+$$
+\large
+|\uparrow \uparrow \uparrow \cdots \uparrow \rangle
+$$
+
+and
+
+$$
+\large
+|\downarrow \downarrow \downarrow \cdots \downarrow \rangle
+$$
+
+In both configurations, every spin points in the same direction along the \(z\)-axis, which minimizes the interaction energy of the term,
+
+$$
+J \sum_i Z_i Z_{i+1}
+$$
+
+In these states all spins point in the same direction, minimizing the interaction energy.
+
+This ordered configuration corresponds to the **ferromagnetic phase**, where the system develops a **macroscopic magnetization along the \(z\)-direction**.
+
+---
+
+## Transverse Field Term
+
+The second term in the Hamiltonian is
+
+$$
+h \sum_i X_i
+$$
+
+This represents the effect of an **external magnetic field applied along the \(x\)-direction**, which is perpendicular to the spin-interaction axis.
+
+The Pauli operator \(X\) flips spin states:
+
+$$
+\large
+X|\uparrow\rangle = |\downarrow\rangle
+$$
+
+$$
+\large
+X|\downarrow\rangle = |\uparrow\rangle
+$$
+
+Because of this property, the transverse field causes spins to **continuously flip between up and down states**.
+
+These flips introduce **quantum fluctuations**, which disrupt the ordered ferromagnetic configuration produced by the interaction term.
+
+---
+
+## Competition Between Order and Quantum Fluctuations
+
+The essential physics of the TFIM comes from the **competition between two tendencies**:
+
+| Interaction Term | Physical Effect |
+|---|---|
+| $$\( -J \sum Z_i Z_{i+1} \)$$ | Encourages **spin alignment** and long-range order |
+| $$\( -h \sum X_i \)$$ | Introduces **quantum fluctuations** that flip spins |
+
+If the interaction dominates, the system prefers **aligned spins**.
+
+If the transverse field dominates, spins fluctuate strongly and **long-range order disappears**.
+
+---
+
+## Quantum Phase Transition
+
+At **zero temperature**, changing the field strength \(h\) drives a **quantum phase transition**.
+
+Unlike classical phase transitions (which are driven by temperature), a quantum phase transition occurs because the **ground state of the Hamiltonian changes as a parameter varies**.
+
+For the one-dimensional TFIM, the critical point occurs at
 
 $$
 h_c = J
 $$
 
-For this simulation we set $J = 1$, so the critical point occurs at
+In our simulations we choose
+
+$$
+J = 1
+$$
+
+so the critical point occurs at
 
 $$
 h_c = 1
 $$
 
-The phases are:
+---
 
-* **Ferromagnetic phase** ($h < 1$)
-  Spins align along the $z$ direction, producing a non-zero magnetization.
+## Phases of the Model
 
-* **Paramagnetic phase** ($h > 1$)
-  The transverse field dominates, destroying long-range order.
+The system exhibits two distinct quantum phases depending on the value of the transverse field.
 
-This transition is driven purely by **quantum fluctuations**, rather than thermal effects.
+| Regime | Phase | Physical Behavior |
+|------|------|------|
+| \(h < 1\) | Ferromagnetic phase | Spins align along the \(z\)-direction and long-range correlations appear |
+| \(h > 1\) | Paramagnetic phase | Spins align mainly along the \(x\)-direction due to the transverse field |
+| \(h = 1\) | Critical point | Correlation length diverges and the system becomes scale-invariant |
 
 ---
 
-## What the Code Does
+## Quantum Criticality
 
-1. Builds the TFIM Hamiltonian as a **Matrix Product Operator (MPO)**.
-
-2. Runs **DMRG** to approximate the ground state as a **Matrix Product State (MPS)**.
-
-3. Computes:
-
-   The average **$Z$-magnetization** is computed as
+At the critical point
 
 $$
-m = \frac{1}{L}\sum_{i=1}^{L} \left| \langle Z_i \rangle \right|
+\large
+h = 1
 $$
 
-which serves as the **order parameter** of the system.
+the system becomes **quantum critical**.
 
-The **entanglement entropy** at the center bond is defined as
+Several important properties appear at this point:
 
-$$
-S = -\mathrm{Tr}(\rho \log \rho)
-$$
+- The **correlation length diverges**
+- Fluctuations occur at **all length scales**
+- Observables exhibit **power-law behaviour**
+- The system becomes highly **entangled**
 
-where $\rho$ is the **reduced density matrix** obtained by partitioning the system into two halves.
+Many quantities show clear signatures of this critical behavior, including:
 
-
-4. Repeats the calculation for different values of the transverse field $h$.
-
-5. Plots magnetization and entanglement entropy as functions of $h$.
-
----
-
-## Parameters
-
-Inside the script:
-
-```python
-L = 40                       # Number of lattice sites
-h_values = np.linspace(0, 2, 20)
-```
-
-* `L` controls the **system size**
-* `h_values` determines the **range of transverse field strengths**
-
-A lattice of **40 sites** is large enough to clearly observe the **quantum phase transition** while remaining computationally efficient.
+- spin correlation functions
+- entanglement entropy
+- excitation gap
+- order parameters
 
 ---
 
-## Simulation Results
+## Importance of the TFIM
 
-The following figure shows how the **order parameter** and **entanglement entropy** change as the transverse field is varied.
+The transverse-field Ising model is extremely important because it is one of the **simplest models that exhibits a quantum phase transition**.
 
-* The **top panel** shows the magnetization.
-* The **bottom panel** shows the entanglement entropy.
-* The **dashed vertical line** marks the critical point $h = 1$.
+Despite its simplicity, it connects to many major areas of physics, including
 
-Near the phase transition:
+- quantum spin chains  
+- fermionic lattice models (via the **Jordan–Wigner transformation**)  
+- conformal field theory  
+- quantum information theory  
+- quantum simulation
 
-* Magnetization rapidly drops to zero.
-* Entanglement entropy increases, indicating strong quantum correlations.
+Because of this, the TFIM is frequently used as a **benchmark system for numerical methods**, including
 
-### Phase Transition Scan
-<img width="1280" height="800" alt="Screenshot 2026-03-05 at 12 43 02 PM" src="https://github.com/user-attachments/assets/0794a442-8c77-4c1f-a9c2-63c3d4ca4099" />
-
-
----
-
-## Numerical Results
-
-The values obtained during the simulation are shown below.
-
-| h    | Magnetization | Entanglement Entropy |
-| ---- | ------------- | -------------------- |
-| 0.00 | 0.500         | 0.000                |
-| 0.11 | 0.497         | 0.000                |
-| 0.21 | 0.486         | 0.002                |
-| 0.32 | 0.463         | 0.012                |
-| 0.42 | 0.408         | 0.053                |
-| 0.53 | 0.000         | 0.562                |
-| 0.63 | 0.000         | 0.322                |
-| 0.74 | 0.000         | 0.230                |
-| 0.84 | 0.000         | 0.176                |
-| 0.95 | 0.000         | 0.142                |
-| 1.05 | 0.000         | 0.117                |
-| 1.16 | 0.000         | 0.098                |
-| 1.26 | 0.000         | 0.084                |
-| 1.37 | 0.000         | 0.073                |
-| 1.47 | 0.000         | 0.064                |
-| 1.58 | 0.000         | 0.057                |
-| 1.68 | 0.000         | 0.051                |
-| 1.79 | 0.000         | 0.046                |
-| 1.89 | 0.000         | 0.041                |
-| 2.00 | 0.000         | 0.038                |
-
----
-
-## Physical Interpretation
-
-The simulation clearly demonstrates the **quantum phase transition** of the TFIM.
-
-* For **small $h$**, the interaction term dominates and the system remains **ferromagnetically ordered**, producing a large magnetization.
-
-* Near **$h \approx 1$**, quantum fluctuations become strong and the **entanglement entropy peaks**, indicating a highly correlated many-body state.
-
-* For **large $h$**, the transverse field dominates and the system enters a **paramagnetic phase**, where magnetization vanishes and spins align with the field.
-
-This behavior is a hallmark of **quantum critical systems** and is widely studied in **quantum many-body physics** and **tensor network simulations**.
+- **Exact diagonalization**
+- **Density Matrix Renormalization Group (DMRG)**
+- **Time-Evolving Block Decimation (TEBD)**
+- **Tensor network algorithms**
+  
+These methods allow us to study the ground state, entanglement structure, and critical behaviour of the model in detail. For this reason, the TFIM serves as a fundamental playground for exploring many-body quantum physics and quantum phase transitions.
