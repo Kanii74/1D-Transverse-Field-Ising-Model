@@ -273,9 +273,7 @@ The table below shows the results produced by the simulation.
 
 Insert the generated plot below.
 
-```
-[ INSERT FIGURE HERE ]
-```
+![DMRG TFIM Results](dmrg_for_TIFM.png)
 
 Example:
 
