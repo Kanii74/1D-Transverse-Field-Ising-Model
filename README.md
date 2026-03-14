@@ -223,3 +223,179 @@ Because of this, the TFIM is frequently used as a **benchmark system for numeric
 - **Tensor network algorithms**
   
 These methods allow us to study the ground state, entanglement structure, and critical behaviour of the model in detail. For this reason, the TFIM serves as a fundamental playground for exploring many-body quantum physics and quantum phase transitions.
+
+# Comparing Different Methods: Exact Diagonalization, DMRG, and VQE
+
+This repository implements three different computational approaches to study the **one–dimensional Transverse Field Ising Model (TFIM)** and compares their ability to compute ground state properties and detect the quantum phase transition.
+
+The TFIM Hamiltonian used throughout the simulations is
+
+$$
+H = -J \sum_{i=1}^{L-1} Z_i Z_{i+1} - h \sum_{i=1}^{L} X_i
+$$
+
+where:
+
+- \(J\) is the Ising coupling strength  
+- \(h\) is the transverse magnetic field  
+- \(Z_i, X_i\) are Pauli operators acting on site \(i\)  
+- \(L\) is the number of spins in the chain  
+
+The system exhibits a **quantum phase transition at \(h/J = 1\)** between:
+
+- **Ferromagnetic phase** (\(h < 1\))
+- **Paramagnetic phase** (\(h > 1\))
+
+To study this transition, the following observables are computed:
+
+- Ground state energy \(E_0\)
+- Local magnetization \( \langle |Z| \rangle \)
+- Correlation-based order parameter \(M_{corr}\)
+- Nearest-neighbour correlations \( \langle Z_i Z_{i+1} \rangle \)
+- Bipartite entanglement entropy \(S(L/2)\)
+- Entanglement spectrum
+
+---
+
+# Methods Implemented
+
+## 1. Exact Diagonalization (ED)
+
+Exact diagonalization constructs the **full Hamiltonian matrix** and directly solves the eigenvalue problem to obtain the ground state.
+
+The Hamiltonian is represented as a dense matrix of size:
+
+$$
+2^L \times 2^L
+$$
+
+For each value of the transverse field \(h\):
+
+1. The full Hamiltonian is constructed.
+2. The eigenvalue problem is solved using linear algebra routines.
+3. The **ground state vector** is extracted.
+4. Physical observables such as magnetization, correlations, and entanglement entropy are computed.
+
+This approach provides **numerically exact results**, but the Hilbert space grows exponentially:
+
+| System Size | Hilbert Space |
+|--------------|---------------|
+| L = 8 | 256 |
+| L = 12 | 4096 |
+| L = 16 | 65536 |
+
+Because of this exponential scaling, exact diagonalization is typically limited to **small systems**.
+
+---
+
+## 2. DMRG-style Ground State Solver (Lanczos + Sparse Methods)
+
+The second approach uses **sparse Hamiltonians and iterative eigensolvers** to approximate the ground state efficiently.
+
+Instead of diagonalizing the full matrix, the code:
+
+1. Builds the Hamiltonian using **sparse matrices**
+2. Uses the **Lanczos algorithm** (`scipy.sparse.linalg.eigsh`)
+3. Extracts the **lowest energy eigenstate**
+
+This approach follows the philosophy behind **Density Matrix Renormalization Group (DMRG)** methods used for one–dimensional quantum systems.
+
+Once the ground state is obtained, the following quantities are computed:
+
+- Correlation based order parameter
+- Entanglement entropy from Schmidt values
+- Entanglement spectrum
+- Local magnetization
+- Correlation functions
+
+DMRG-type methods are powerful because they exploit the fact that **low-energy states of 1D systems have low entanglement**, allowing simulations of much larger systems than exact diagonalization.
+
+Advantages:
+
+- Works for **much larger system sizes**
+- Efficient for **1D gapped systems**
+- Captures entanglement structure
+
+---
+
+## 3. Variational Quantum Eigensolver (VQE)
+
+The third approach implements a **hybrid quantum-classical algorithm** using Qiskit.
+
+Instead of solving the Hamiltonian directly, the ground state is approximated using a **parameterized quantum circuit (ansatz)**.
+
+Workflow:
+
+1. Construct the TFIM Hamiltonian using **Pauli operators**
+2. Prepare a parameterized quantum circuit consisting of:
+   - Rotation layers
+   - Entangling CNOT gates
+3. Compute the energy expectation value
+
+$$
+E(\theta) = \langle \psi(\theta) | H | \psi(\theta) \rangle
+$$
+
+4. Use a classical optimizer (**COBYLA**) to minimize the energy
+
+The optimized circuit approximates the ground state wavefunction.
+
+Once the state is obtained, the code computes:
+
+- Ground state energy
+- Magnetization
+- Correlation order parameter
+- Entanglement entropy
+- Entanglement spectrum
+
+---
+
+# Observables Used to Detect the Phase Transition
+
+## Ground State Energy
+
+The ground state energy changes smoothly but shows a change in curvature near the critical point.
+
+## Correlation Order Parameter
+
+A correlation-based magnetization is defined as
+
+$$
+M_{corr} = \sqrt{\frac{1}{L^2} \sum_{i,j} \langle Z_i Z_j \rangle}
+$$
+
+This quantity distinguishes the two phases:
+
+- Large in the **ferromagnetic phase**
+- Small in the **paramagnetic phase**
+
+---
+
+## Entanglement Entropy
+
+The bipartite entanglement entropy is computed by splitting the chain into two halves:
+
+$$
+S = - \sum_i \lambda_i^2 \log(\lambda_i^2)
+$$
+
+where \(\lambda_i\) are the Schmidt coefficients.
+
+At the **critical point**, the entropy typically **peaks**, reflecting enhanced quantum correlations.
+
+---
+
+# Comparison of Methods
+
+| Method | Accuracy | Scalability | Hardware |
+|------|------|------|------|
+| Exact Diagonalization | Exact | Poor (exponential scaling) | Classical |
+| DMRG / Lanczos | Very High | Excellent for 1D | Classical |
+| VQE | Approximate | Designed for quantum hardware | Hybrid quantum-classical |
+
+Key takeaways:
+
+- **Exact diagonalization** provides a benchmark solution.
+- **DMRG-style methods** scale to larger systems and are standard in condensed matter physics.
+- **VQE** demonstrates how quantum computers may eventually simulate many-body systems.
+
